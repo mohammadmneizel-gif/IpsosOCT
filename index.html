@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<base target="_top">
+<title>Ipsos TV Viewing Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Chakra+Petch:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400..700&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400..800&family=Unbounded:wght@400..800&display=swap">
+<style>
+/* Layout: a fixed option switcher on top; each mockup is its own complete visual world below it. Each mockup commits to one look, so colors are set explicitly per mockup. */
+:root{
+  color-scheme:dark;
+  --shell-bg:#0c0f16; --shell-fg:#e7e9f0; --shell-mute:#8b91a3; --shell-line:#232837; --shell-accent:#7aa7ff;
+  --s-roya:#2a78d6; --s-jtv:#eb6834; --s-amman:#1baf7a; --s-mam:#eda100; --s-jaz:#e87ba4; --s-mub:#008300; --s-mbc:#4a3aa7; --s-oth:#e34948;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+}
+*{box-sizing:border-box}
+body{background:var(--shell-bg);color:var(--shell-fg);font-family:"DM Sans",system-ui,sans-serif;margin:0}
+.shell{padding-inline:16px;padding-block:0 40px;max-width:1360px;margin:0 auto}
+.switch{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--shell-bg);padding-block:14px 12px;border-bottom:1px solid var(--shell-line);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.switch h1{font:600 15px/1.2 "DM Sans",sans-serif;margin:0;letter-spacing:.01em}
+.switch h1 small{display:block;color:var(--shell-mute);font-weight:400;font-size:12px;margin-top:2px}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opts button{font:500 13px "DM Sans",sans-serif;background:transparent;color:var(--shell-mute);border:1px solid var(--shell-line);border-radius:999px;padding:7px 14px;cursor:pointer}
+.opts button b{color:var(--shell-fg);margin-right:6px}
+.opts button[aria-pressed="true"]{background:var(--shell-fg);color:var(--shell-bg);border-color:var(--shell-fg)}
+.opts button[aria-pressed="true"] b{color:var(--shell-bg)}
+.opts button:focus-visible,button:focus-visible{outline:2px solid var(--shell-accent);outline-offset:2px}
+.brief{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 28px;margin-block:16px;color:var(--shell-mute);font-size:13px;line-height:1.5}
+.brief strong{color:var(--shell-fg);font-weight:600}
+.addtag{display:inline-block;font:600 9.5px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;padding:3px 6px;border-radius:4px;background:#ffd84d;color:#1a1400;vertical-align:middle;margin-left:6px}
+.frame{border-radius:14px;overflow:hidden;border:1px solid var(--shell-line)}
+.tip{position:absolute;pointer-events:none;z-index:5;padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.45;white-space:nowrap;opacity:0;transition:opacity .12s;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.tip .r{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.tip .sw{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:6px}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;overflow:visible}
+.num{font-variant-numeric:tabular-nums}
+.scrollx{overflow-x:auto;max-width:100%}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid currentColor;background:transparent;color:inherit;font-family:inherit}
+.chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.chip[aria-pressed="false"]{opacity:.45}
+.mx{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.mx th,.mx td{padding:7px 6px;text-align:right;white-space:nowrap}
+.mx th:first-child,.mx td:first-child{text-align:left}
+.mx td .pc{opacity:.6;font-size:.78em;display:block;margin-top:1px}
+.mx{table-layout:fixed}
+.mx th:first-child,.mx td:first-child{width:180px;white-space:normal}
+.mx th{white-space:normal;line-height:1.25}
+.mx .lbl{display:inline-flex;align-items:center;gap:8px}
+.mx .lbl i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.seg{display:inline-flex;border-radius:999px;padding:3px;gap:2px}
+.seg button{font:inherit;font-size:12px;border:0;border-radius:999px;padding:5px 11px;cursor:pointer;background:transparent;color:inherit}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ============ A · CONTROL ROOM ============ */
+.mA{--bg:#080b12;--panel:#0f1420;--line:#1e2638;--fg:#e8ecf6;--mute:#7f8aa3;--hot:#ff4d5e;
+  --s-roya:#3987e5;--s-jtv:#d95926;--s-amman:#199e70;--s-mam:#c98500;--s-jaz:#d55181;--s-mub:#2ea043;--s-mbc:#9085e9;--s-oth:#e66767;
+  background:var(--bg);color:var(--fg);font-family:"IBM Plex Mono",monospace;padding:20px;position:relative;
+  background-image:radial-gradient(1200px 400px at 80% -10%,rgba(57,135,229,.16),transparent 60%),radial-gradient(800px 300px at 0% 0%,rgba(213,81,129,.10),transparent 60%);}
+.mA::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px)}
+.mA h2,.mA h3{font-family:"Chakra Petch",sans-serif;text-transform:uppercase;letter-spacing:.08em;margin:0}
+.mA .top{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:flex-end;margin-bottom:16px}
+.mA .top h2{font-size:clamp(20px,3vw,30px);line-height:1}
+.mA .top .sub{color:var(--mute);font-size:12px;margin-top:6px}
+.mA .onair{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--hot);color:var(--hot);padding:4px 10px;border-radius:4px;font:600 12px "Chakra Petch";letter-spacing:.14em}
+.mA .onair i{width:8px;height:8px;border-radius:50%;background:var(--hot);box-shadow:0 0 10px var(--hot);animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.25}}
+.mA .days{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.mA .days button{font:inherit;font-size:12px;color:var(--mute);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;min-width:92px}
+.mA .days button b{display:block;color:var(--fg);font:600 14px "Chakra Petch"}
+.mA .days button[aria-pressed="true"]{border-color:var(--s-roya);box-shadow:0 0 0 1px var(--s-roya),0 0 18px rgba(57,135,229,.35)}
+.mA .days .wait{opacity:.5;border-style:dashed;cursor:default}
+.mA .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}
+.mA .p{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0;position:relative}
+.mA .p h3{font-size:12px;color:var(--mute);margin-bottom:10px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.mA .kpi .v{font:700 clamp(30px,4vw,44px)/1 "Chakra Petch";letter-spacing:.02em}
+.mA .kpi .d{color:var(--mute);font-size:12px;margin-top:8px}
+.mA .led{display:flex;gap:3px;margin-top:10px;align-items:flex-end;height:28px}
+.mA .led span{flex:1;background:var(--s-roya);border-radius:2px;box-shadow:0 0 8px rgba(57,135,229,.5);min-height:2px}
+.mA .c3{grid-column:span 3}.mA .c4{grid-column:span 4}.mA .c8{grid-column:span 8}.mA .c12{grid-column:span 12}.mA .c6{grid-column:span 6}
+.mA .mx th{color:var(--mute);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line);cursor:pointer}
+.mA .mx td{border-bottom:1px solid var(--line);font-size:13px}
+.mA .mx .sel{background:rgba(57,135,229,.10)}
+.mA .mx tr.calls td{color:var(--fg);font-weight:600}
+.mA .seg{background:#060910;border:1px solid var(--line)}
+.mA .seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.mA .chip{color:var(--fg);border-color:var(--line)}
+.mA .tip{background:#1a2234;color:var(--fg);border:1px solid var(--line);font-family:"IBM Plex Mono"}
+.mA .bars .r{display:grid;grid-template-columns:110px 1fr 28px;gap:8px;align-items:center;font-size:12px;margin-block:6px}
+.mA .bars .t{height:8px;background:#151c2b;border-radius:2px;overflow:hidden}
+.mA .bars .t i{display:block;height:100%;background:var(--s-oth);box-shadow:0 0 10px rgba(230,103,103,.6)}
+.mA .health li{list-style:none;display:grid;grid-template-columns:16px 1fr;gap:8px;font-size:12px;line-height:1.45;margin-block:8px;color:#c6cde0}
+.mA .health ul{padding:0;margin:0}
+.mA .health .ic{font-weight:700}
+@media (max-width:900px){.mA .c3{grid-column:span 6}.mA .c4,.mA .c8,.mA .c6{grid-column:span 12}}
+@media (max-width:520px){.mA .c3{grid-column:span 12}.mA{padding:14px}}
+
+/* ============ HYBRID: Control Room + Dial ============ */
+.hero{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:12px;margin-bottom:12px}
+.mA .dialp{display:flex;flex-direction:column}
+.mA .dialwrap{position:relative;width:100%;max-width:600px;margin:4px auto 0}
+.mA .dialwrap svg{display:block;width:100%;height:auto;overflow:visible}
+.mA .dialwrap path.w{transition:opacity .15s}
+.mA .dialwrap path.w:hover{stroke:#e8ecf6;stroke-width:1.2}
+.mA .dialctl{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
+.mA .dialctl .chip[aria-pressed="true"]{opacity:1;border-color:#e8ecf6;box-shadow:0 0 12px rgba(232,236,246,.18)}
+.mA .dialctl .chip[aria-pressed="false"]{opacity:.55}
+.mA .side{display:grid;grid-template-rows:auto 1fr;gap:12px;min-width:0}
+.mA .k4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.mA .k4 .p .v{font:700 clamp(26px,3.2vw,38px)/1 "Chakra Petch"}
+.mA .rankA .r{display:grid;grid-template-columns:132px 1fr 66px;gap:10px;align-items:center;margin-block:9px;font-size:12.5px;cursor:pointer;border-radius:6px;padding:2px 4px;background:transparent;border:0;color:inherit;font-family:inherit;width:100%;text-align:left}
+.mA .rankA .r:hover,.mA .rankA .r[aria-pressed="true"]{background:#151c2b}
+.mA .rankA .t{height:10px;background:#151c2b;border-radius:2px;overflow:hidden;display:flex;gap:2px}
+.mA .rankA .t i{display:block;height:100%;border-radius:1px}
+.mA .rankA .n{text-align:right;color:#7f8aa3}
+.mA .rankA .n b{color:#e8ecf6}
+.mA .dtip{position:absolute;pointer-events:none;z-index:5;padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.45;white-space:nowrap;opacity:0;transition:opacity .12s;background:#1a2234;color:#e8ecf6;border:1px solid #1e2638}
+.note{color:var(--shell-mute);font-size:13px;line-height:1.5;margin-block:14px;max-width:90ch}
+@media (max-width:900px){.hero{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.mA .k4{grid-template-columns:minmax(0,1fr)}.mA .rankA .r{grid-template-columns:100px 1fr 58px}}
+/* ============ APP MOCKUP: phone + tablet ============ */
+
+.app.mA{padding:0;height:100%;display:flex;flex-direction:column;font-size:13px}
+.app .scroller{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;scrollbar-width:none}
+.app .scroller::-webkit-scrollbar{display:none}
+.app.tablet .sbar{padding:10px 24px 4px;font-size:12px}
+.app .ahead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 18px 10px;position:sticky;top:0;z-index:10;background:rgba(8,11,18,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.app .brand{display:flex;align-items:center;gap:10px}
+.app .brand b{font:700 17px/1 "Chakra Petch",sans-serif;letter-spacing:.06em;text-transform:uppercase}
+.app .brand small{display:block;color:var(--mute);font-size:10.5px;margin-top:3px;letter-spacing:.04em}
+.app .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(145deg,#16243d,#0b101c);border:1px solid #2a3550;display:grid;place-items:center;flex:none}
+.app .live{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--hot);color:var(--hot);border-radius:999px;padding:4px 9px;font:600 10.5px "Chakra Petch";letter-spacing:.1em;background:transparent;cursor:pointer}
+.app .live i{width:6px;height:6px;border-radius:50%;background:var(--hot);box-shadow:0 0 8px var(--hot);animation:blink 1.6s infinite}
+.app .daystrip{display:flex;gap:8px;overflow-x:auto;padding:4px 18px 12px;scrollbar-width:none}
+.app .daystrip::-webkit-scrollbar{display:none}
+.app .daystrip button{flex:none;font:inherit;font-size:11px;color:var(--mute);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 12px;cursor:pointer;text-align:left;min-width:74px}
+.app .daystrip button b{display:block;color:var(--fg);font:700 14px "Chakra Petch"}
+.app .daystrip button[aria-pressed="true"]{border-color:var(--s-roya);box-shadow:0 0 0 1px var(--s-roya),0 0 16px rgba(57,135,229,.35)}
+.app .daystrip .wait{opacity:.5;border-style:dashed;cursor:default}
+.app .body{padding:0 14px 18px;display:grid;gap:12px}
+.app .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;min-width:0;position:relative}
+.app .card h3{font-size:11px;color:var(--mute);margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.app .kp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.app .kp .card{padding:12px 14px}
+.app .kp .v{font:700 28px/1 "Chakra Petch"}
+.app .kp .d{color:var(--mute);font-size:11px;margin-top:6px;line-height:1.35}
+.app .rowbtn{display:grid;grid-template-columns:110px 1fr 64px;gap:10px;align-items:center;width:100%;background:transparent;border:0;color:inherit;font:inherit;font-size:12.5px;padding:9px 4px;border-radius:10px;cursor:pointer;text-align:left}
+.app .rowbtn[aria-pressed="true"]{background:#151c2b}
+.app .rowbtn .t{height:8px;background:#151c2b;border-radius:2px;overflow:hidden}
+.app .rowbtn .t i{display:block;height:100%}
+.app .rowbtn .n{text-align:right;color:var(--mute)}
+.app .rowbtn .n b{color:var(--fg)}
+.app .rowbtn .nm{display:flex;align-items:center;gap:7px;min-width:0}
+.app .rowbtn .nm i{width:8px;height:8px;border-radius:2px;flex:none}
+.app .install{display:flex;gap:12px;align-items:center;border-style:dashed}
+.app .install p{margin:0;font-size:12px;line-height:1.45;color:#c6cde0}
+.app .install button{margin-left:auto;background:transparent;border:0;color:var(--mute);font-size:18px;cursor:pointer;padding:4px}
+.app .hscroll{overflow-x:auto;margin-inline:-14px;padding-inline:14px;scrollbar-width:none}
+.app .hscroll::-webkit-scrollbar{display:none}
+.app .swipe{font-size:10.5px;color:var(--mute);margin-top:6px}
+.app .chcard{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 14px;width:100%;color:inherit;font:inherit;text-align:left}
+.app .chcard .nm{display:flex;align-items:center;gap:8px;font-size:13px}
+.app .chcard .nm i{width:10px;height:10px;border-radius:3px}
+.app .chcard .big{font:700 22px/1 "Chakra Petch";text-align:right}
+.app .chcard .big small{font:500 11px "IBM Plex Mono";color:var(--mute);margin-left:4px}
+.app .chcard svg{grid-column:1/-1;width:100%;height:46px;display:block}
+.app .chcard .days{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(56px,1fr));gap:6px;margin-top:6px}
+.app .chcard .days span{background:#0b101c;border:1px solid var(--line);border-radius:8px;padding:6px;font-size:10.5px;color:var(--mute);text-align:center}
+.app .chcard .days b{display:block;color:var(--fg);font:700 14px "Chakra Petch"}
+.app .hsum{display:flex;gap:8px;flex-wrap:wrap}
+.app .hsum span{border-radius:999px;padding:6px 11px;font-size:11.5px;font-weight:600;border:1px solid var(--line)}
+.app .hlist li{list-style:none;display:grid;grid-template-columns:auto 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.45}
+.app .hlist ul{margin:0;padding:0}
+.app .pill{font-size:10px;font-weight:700;padding:3px 7px;border-radius:999px;color:#0a0e17;white-space:nowrap;height:fit-content}
+/* bottom tab bar (phone) */
+.app .tabbar{flex:none;display:grid;grid-template-columns:repeat(3,1fr);padding:8px 10px 26px;background:rgba(10,14,23,.94);border-top:1px solid var(--line)}
+.app .tabbar button,.app .rail button{background:transparent;border:0;color:var(--mute);font:600 10px "IBM Plex Mono";letter-spacing:.04em;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:6px 0;border-radius:12px}
+.app .tabbar button[aria-current="page"],.app .rail button[aria-current="page"]{color:#e8ecf6}
+.app .tabbar button[aria-current="page"] svg,.app .rail button[aria-current="page"] svg{filter:drop-shadow(0 0 6px rgba(57,135,229,.8));stroke:#3987e5}
+/* tablet: side rail + wider grids */
+.app.tablet .frame2{flex:1;display:grid;grid-template-columns:84px minmax(0,1fr);min-height:0}
+.app .rail{display:flex;flex-direction:column;gap:6px;padding:14px 8px;border-right:1px solid var(--line);background:rgba(10,14,23,.6)}
+.app .rail button{padding:12px 0}
+.app.tablet .body{padding:0 20px 24px;gap:14px}
+.app.tablet .home{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}
+.app.tablet .chgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.app .dialwrap{max-width:min(100%,520px)}
+.app .dialctl{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.app .dialctl::-webkit-scrollbar{display:none}
+.app .dialctl .chip{flex:none}
+.app .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.app .chips::-webkit-scrollbar{display:none}
+.app .chips .chip{flex:none}
+.app.tablet .chips{flex-wrap:wrap}
+
+/* the button */
+.whybtn{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:7px 12px 7px 9px;border-radius:999px;border:1px solid rgba(255,77,94,.6);background:linear-gradient(90deg,rgba(255,77,94,.18),rgba(255,77,94,.05));color:#ffd5da;font:600 12px "Chakra Petch";letter-spacing:.06em;cursor:pointer;box-shadow:0 0 18px rgba(255,77,94,.25);animation:pulse 2.4s ease-in-out infinite}
+.whybtn:hover{background:rgba(255,77,94,.28)}
+.whybtn i{width:18px;height:18px;border-radius:50%;background:#ff4d5e;display:grid;place-items:center;color:#0a0e17;font-style:normal;font-weight:800;font-size:12px}
+@keyframes pulse{50%{box-shadow:0 0 4px rgba(255,77,94,.15)}}
+.chartwhy{position:absolute;right:14px;top:12px}
+.chartwhy .whybtn{margin:0}
+
+/* the story screen */
+.story{position:absolute;inset:0;z-index:40;background:rgba(5,7,11,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;justify-content:center;align-items:flex-start;padding:24px;overflow-y:auto;animation:fadein .2s ease}
+.phonebox .story{padding:0;background:#080b12}
+@keyframes fadein{from{opacity:0}}
+.sheet{width:100%;max-width:1040px;background:#0a0e17;border:1px solid #232c40;border-radius:20px;box-shadow:0 30px 120px rgba(0,0,0,.6),0 0 0 1px rgba(255,77,94,.15);padding:22px;display:grid;gap:14px;animation:rise .25s ease;position:relative;
+  background-image:radial-gradient(700px 260px at 85% -10%,rgba(255,77,94,.14),transparent 60%),radial-gradient(600px 240px at 0% 0%,rgba(57,135,229,.12),transparent 60%)}
+.phonebox .sheet{border-radius:0;border:0;padding:16px 14px 30px;min-height:100%}
+@keyframes rise{from{transform:translateY(14px);opacity:0}}
+.close{position:absolute;right:16px;top:16px;width:36px;height:36px;border-radius:50%;border:1px solid #2a3550;background:#0f1420;color:#e8ecf6;font-size:18px;cursor:pointer;z-index:2}
+.eyebrow{font:600 11px "IBM Plex Mono";letter-spacing:.16em;text-transform:uppercase;color:#ff8b98}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:18px;align-items:end}
+.phonebox .hero{grid-template-columns:minmax(0,1fr)}
+.hero h2{font:700 clamp(46px,7vw,84px)/.9 "Chakra Petch";margin:6px 0 8px;letter-spacing:.02em;text-shadow:0 0 30px rgba(255,77,94,.35)}
+.phonebox .hero h2{font-size:58px}
+.hero .facts{display:flex;flex-wrap:wrap;gap:8px}
+.hero .facts span{border:1px solid #232c40;background:#0f1420;border-radius:999px;padding:6px 11px;font-size:12px;color:#c6cde0}
+.hero .facts b{color:#fff}
+.spark{width:100%;height:92px;display:block}
+.sgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.phonebox .sgrid{grid-template-columns:minmax(0,1fr)}
+.sgrid .wide{grid-column:span 2}
+.phonebox .sgrid .wide{grid-column:auto}
+.sc{background:#0f1420;border:1px solid #1e2638;border-radius:14px;padding:14px 16px;min-width:0}
+.sc h5{font:600 11px "Chakra Petch";letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.sc h5 em{font-style:normal;width:20px;height:20px;border-radius:6px;background:#16203a;color:#9ec5f4;display:grid;place-items:center;font-size:11px}
+.sc ul{margin:0;padding:0;display:grid;gap:9px}
+.sc li{list-style:none;font-size:13px;line-height:1.55;color:#d3d9e8;display:grid;grid-template-columns:14px 1fr;gap:6px}
+.sc li::before{content:"›";color:#ff6b7b;font-weight:700}
+.sc b{color:#fff}
+.sc .ws{color:var(--mute);font-size:12px;line-height:1.5}
+.brow{display:grid;grid-template-columns:minmax(96px,150px) minmax(60px,1fr) 78px;gap:10px;align-items:center;font-size:12.5px;margin-block:5px}
+.brow .t{height:10px;background:#151c2b;border-radius:2px;overflow:hidden}.brow .t i{display:block;height:100%;border-radius:1px}
+.brow .n{text-align:right;color:var(--mute);white-space:nowrap}.brow .n b{color:#fff}
+.brow .nm{display:flex;align-items:center;gap:7px;min-width:0}.brow .nm i{width:8px;height:8px;border-radius:2px;flex:none}
+.subn{margin:2px 0 6px 15px;padding-left:10px;border-left:1px dashed #2a3550}
+.subn .brow{font-size:11.5px;color:#c6cde0;margin-block:3px}.subn .brow .t{height:6px}
+.tag{font-size:10.5px;color:var(--mute);letter-spacing:.04em}
+.qgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:end}
+.qcol{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--mute);text-align:center}
+.qcol .bar{width:100%;max-width:56px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#9ec5f4,#2a78d6);box-shadow:0 0 14px rgba(57,135,229,.4)}
+.qcol.best .bar{background:linear-gradient(180deg,#ffb3bc,#ff4d5e);box-shadow:0 0 16px rgba(255,77,94,.55)}
+.qcol b{color:#fff;font:700 18px "Chakra Petch"}
+.qcol .who{color:#c6cde0;font-size:10.5px;line-height:1.3;min-height:28px}
+.delta{display:grid;grid-template-columns:minmax(0,1fr) 56px 46px;gap:8px;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid #151c2b}
+.delta .up{color:#7ee2a8;text-align:right;font-weight:600}.delta .dn{color:#ff8b8b;text-align:right;font-weight:600}.delta .fl{color:var(--mute);text-align:right}
+.delta .fr{color:var(--mute);text-align:right;font-size:11px}
+.dbar{display:grid;grid-template-columns:96px minmax(0,1fr) 28px;gap:8px;align-items:center;font-size:12px;margin-block:5px}
+.dbar .t{height:12px;background:#151c2b;border-radius:3px;overflow:hidden}.dbar .t i{display:block;height:100%;background:#3987e5;border-radius:3px}
+.dbar.best .t i{background:#ff6b7b;box-shadow:0 0 10px rgba(255,77,94,.6)}
+.sc dl{margin:0;font-size:12px;line-height:1.5;color:#c6cde0}.sc dt{font-weight:700;color:#fff;margin-top:8px}.sc dt:first-child{margin-top:0}.sc dd{margin:0}
+
+/* ============ LIVE: layout switch, story layer ============ */
+#storyLayer{padding:0;background:none;position:static}
+#storyLayer::after{display:none}
+.story{position:fixed;z-index:100}
+body.isapp{overscroll-behavior:none}
+body.isapp .shell{padding:0!important;max-width:none}
+body.isapp .frame{border:0;border-radius:0}
+body.isapp .app.mA{height:100vh;height:100dvh}
+body.isapp .app .ahead{padding-top:calc(10px + env(safe-area-inset-top,0px))}
+body.isapp .app .tabbar{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+body.isapp .story{padding:0;background:#080b12}
+body.isapp .sheet{border-radius:0;border:0;padding:calc(16px + env(safe-area-inset-top,0px)) 14px calc(30px + env(safe-area-inset-bottom,0px));min-height:100%;max-width:none}
+body.isapp .hero{grid-template-columns:minmax(0,1fr)}
+body.isapp .hero h2{font-size:58px}
+body.isapp .sgrid{grid-template-columns:minmax(0,1fr)}
+body.isapp .sgrid .wide{grid-column:auto}
+body.isapp .close{top:calc(14px + env(safe-area-inset-top,0px))}
+.peakcard{border-color:rgba(255,77,94,.35)!important}
+.viewlink{background:transparent;border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:7px 12px;font:inherit;font-size:11.5px;cursor:pointer}
+@media (max-width:700px){.sgrid{grid-template-columns:minmax(0,1fr)!important}.sgrid .wide{grid-column:auto!important}.hero{grid-template-columns:minmax(0,1fr)!important}.story{padding:10px}}
+</style>
+</head>
+<body>
+<div class="shell" style="padding-block:16px 40px">
+  <div class="frame" id="stage"><section class="mA" data-m="A"><div class="top"><div><h2>Ipsos TV Viewing Monitor</h2><div class="sub" id="bootmsg">Reading the tracking sheet…</div></div></div></section></div>
+</div>
+
+<div id="storyLayer" class="mA"></div>
+
+<script>
+
+let DAYS=[],PENDING=[],UPDATED='';
+const CH=[
+ {k:'roya',n:'Roya TV',v:'--s-roya'},{k:'jtv',n:'Jordan TV',v:'--s-jtv'},{k:'amman',n:'Amman TV',v:'--s-amman'},
+ {k:'mamlakeh',n:'Al Mamlakeh',v:'--s-mam'},{k:'jazeera',n:'Al Jazeera',v:'--s-jaz'},{k:'mubasher',n:'Al Jazeera Mubasher',v:'--s-mub'},
+ {k:'mbc1',n:'MBC 1',v:'--s-mbc'},{k:'other',n:'Other',v:'--s-oth'}];
+const NH=21,NQ=84;  // 6 AM … 2 AM hours; 6:00 AM … 2:45 AM quarter-hours
+const HL=[];for(let h=6;h<6+NH;h++)HL.push(hl(h));
+function hl(h){h=h%24;const a=h>=12?'PM':'AM';const x=h%12||12;return x+' '+a}
+const QL=[];for(let i=0;i<NQ;i++){const m=6*60+i*15,h=Math.floor(m/60)%24,mm=m%60;const a=h>=12?'PM':'AM';QL.push((h%12||12)+':'+String(mm).padStart(2,'0')+' '+a)}
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const dlabel=d=>{const t=new Date(d.date+'T00:00');return d.wd+' '+t.getDate()+' '+MON[t.getMonth()]};
+let HEALTH=[];
+const SEV={crit:['Critical','var(--crit)','!'],serious:['Serious','var(--serious)','!'],warn:['Check','var(--warn)','?']};
+
+let state={o:'A',sel:'all',metric:'reach',chs:null};
+
+function agg(sel){
+  const ds=sel==='all'?DAYS:[DAYS[sel]],z=n=>Array(n).fill(0);
+  const o={callers:0,reach:{},mentions:{},q:z(NQ),h:z(NH),qch:{},hch:{},other:{},late:0,lateUnknown:0,latech:{}};
+  CH.forEach(c=>{o.reach[c.k]=0;o.mentions[c.k]=0;o.qch[c.k]=z(NQ);o.hch[c.k]=z(NH);o.latech[c.k]=0});
+  ds.forEach(d=>{o.callers+=d.callers;o.late+=d.late;o.lateUnknown+=d.lateUnknown||0;CH.forEach(c=>o.latech[c.k]+=(d.latech&&d.latech[c.k])||0);
+    CH.forEach(c=>{o.reach[c.k]+=d.reach[c.k];o.mentions[c.k]+=d.mentions[c.k];
+      d.qch[c.k].forEach((v,i)=>o.qch[c.k][i]+=v);d.hch[c.k].forEach((v,i)=>o.hch[c.k][i]+=v)});
+    d.q.forEach((v,i)=>o.q[i]+=v);d.h.forEach((v,i)=>o.h[i]+=v);
+    for(const k in d.other)o.other[k]=(o.other[k]||0)+d.other[k]});
+  return o;
+}
+const val=(a,k)=>a[state.metric][k];
+const pct=(n,d)=>d?Math.round(n/d*100)+'%':'–';
+const argmax=a=>a.reduce((b,v,i)=>v>a[b]?i:b,0);
+function topCh(a){return CH.filter(c=>c.k!=='other').reduce((b,c)=>val(a,c.k)>val(a,b.k)?c:b)}
+function defaultChs(){const a=agg('all');return CH.filter(c=>c.k!=='other').sort((x,y)=>a.reach[y.k]-a.reach[x.k]).slice(0,3).map(c=>c.k)}
+function col(root,v){return getComputedStyle(root).getPropertyValue(v).trim()}
+const nextDay=()=>PENDING.length?PENDING[0]:(DAYS.length?DAYS[DAYS.length-1].day+1:1);
+
+/* ---------- line chart ---------- */
+function lineChart(el,cfg){
+  const root=el.closest('[data-m]');const W=Math.max(300,el.clientWidth),H=cfg.h||230,m={t:18,r:16,b:30,l:30};
+  const n=cfg.labels.length,all=cfg.series.flatMap(s=>s.values);let max=Math.max(1,...all);
+  const step=max<=6?1:max<=12?2:max<=30?5:10;max=Math.ceil(max/step)*step;
+  const x=i=>m.l+i*(W-m.l-m.r)/(n-1),y=v=>H-m.b-v/max*(H-m.t-m.b);
+  const T=cfg.theme;let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${cfg.aria}">`;
+  if(T.glow)s+=`<defs><filter id="gl${el.id}" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+  for(let v=0;v<=max;v+=step)s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${T.grid}" stroke-width="1"/><text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="10.5" fill="${T.text}" font-family="${T.font}">${v}</text>`;
+  cfg.labels.forEach((l,i)=>{if(i%cfg.every===0||i===n-1)s+=`<text x="${x(i)}" y="${H-10}" text-anchor="middle" font-size="10.5" fill="${T.text}" font-family="${T.font}">${cfg.short?cfg.short(l,i):l}</text>`});
+  cfg.series.forEach((se,si)=>{const pts=se.values.map((v,i)=>[x(i),y(v)]);
+    const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('');
+    if(si===0&&cfg.area){s+=`<defs><linearGradient id="ag${el.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${se.color}" stop-opacity="${T.areaOp||.22}"/><stop offset="1" stop-color="${se.color}" stop-opacity="0"/></linearGradient></defs><path d="${d}L${x(n-1)} ${y(0)}L${x(0)} ${y(0)}Z" fill="url(#ag${el.id})"/>`}
+    s+=`<path d="${d}" fill="none" stroke="${se.color}" stroke-width="${se.w||2}" stroke-linejoin="round" stroke-linecap="round" ${se.dash?'stroke-dasharray="4 4"':''} ${T.glow?`filter="url(#gl${el.id})"`:''}/>`;
+    if(si===0){const pi=argmax(se.values);s+=`<circle cx="${x(pi)}" cy="${y(se.values[pi])}" r="4.5" fill="${se.color}" stroke="${T.bg}" stroke-width="2"/><text x="${Math.min(Math.max(x(pi),m.l+30),W-m.r-30)}" y="${y(se.values[pi])-10}" text-anchor="middle" font-size="11" font-weight="600" fill="${T.fg}" font-family="${T.font}">Peak ${cfg.labels[pi]}</text>`}
+  });
+  s+=`<g class="hov" opacity="0"><line y1="${m.t}" y2="${H-m.b}" stroke="${T.text}" stroke-width="1" stroke-dasharray="2 3"/>${cfg.series.map(se=>`<circle r="4" fill="${se.color}" stroke="${T.bg}" stroke-width="2"/>`).join('')}</g>`;
+  s+=`<rect x="${m.l}" y="0" width="${W-m.l-m.r}" height="${H}" fill="transparent"/></svg><div class="tip"></div>`;
+  el.innerHTML=s;const svg=el.querySelector('svg'),g=svg.querySelector('.hov'),tip=el.querySelector('.tip');
+  const move=e=>{const r=svg.getBoundingClientRect(),px=(e.clientX-r.left)*W/r.width;const i=Math.max(0,Math.min(n-1,Math.round((px-m.l)/((W-m.l-m.r)/(n-1)))));
+    g.setAttribute('opacity',1);g.querySelector('line').setAttribute('x1',x(i));g.querySelector('line').setAttribute('x2',x(i));
+    g.querySelectorAll('circle').forEach((c,k)=>{c.setAttribute('cx',x(i));c.setAttribute('cy',y(cfg.series[k].values[i]))});
+    tip.innerHTML=`<div style="font-weight:700;margin-bottom:3px">${cfg.tipLabel?cfg.tipLabel(i):cfg.labels[i]}</div>`+cfg.series.map(se=>`<div class="r"><span><span class="sw" style="background:${se.color}"></span>${se.name}</span><b class="num">${se.values[i]}</b></div>`).join('');
+    tip.style.opacity=1;const tx=x(i)*r.width/W;tip.style.left=Math.min(Math.max(tx+12,0),r.width-tip.offsetWidth)+'px';tip.style.top='6px';
+    if(tx+12+tip.offsetWidth>r.width)tip.style.left=Math.max(0,tx-12-tip.offsetWidth)+'px'};
+  svg.addEventListener('pointermove',move);svg.addEventListener('pointerleave',()=>{g.setAttribute('opacity',0);tip.style.opacity=0});
+}
+function seriesFor(root,a,kind){
+  const all={name:'All viewers',color:col(root,'--allc'),values:kind==='h'?a.h:a.q,w:2.5};
+  return [all,...state.chs.map(k=>{const c=CH.find(c=>c.k===k);return{name:c.n,color:col(root,c.v),values:(kind==='h'?a.hch:a.qch)[k],w:1.75}})];
+}
+const hourShort=(l,i)=>l.replace(' AM','a').replace(' PM','p');
+const qShort=(l,i)=>l.endsWith(':00 AM')||l.endsWith(':00 PM')?hourShort(l.replace(':00','')):'';
+
+/* ---------- shared pieces ---------- */
+function matrix(a){
+  const cols=DAYS.map((d,i)=>({i,lab:'Day '+d.day,sub:d.wd,data:agg(i)}));
+  const th=cols.map(c=>`<th data-sel="${c.i}" class="${state.sel===c.i?'sel':''}">${c.lab}<br><span style="font-weight:400;opacity:.7">${c.sub}</span></th>`).join('');
+  const tot=agg('all');
+  let r=`<tr class="calls"><td>Calls</td>${cols.map(c=>`<td class="${state.sel===c.i?'sel':''}">${c.data.callers}</td>`).join('')}<td class="${state.sel==='all'?'sel':''}">${tot.callers}</td></tr>`;
+  CH.forEach(ch=>{r+=`<tr><td><span class="lbl"><i style="background:var(${ch.v})"></i>${ch.n}</span></td>`+
+    cols.map(c=>`<td class="${state.sel===c.i?'sel':''}">${val(c.data,ch.k)}<span class="pc">${pct(val(c.data,ch.k),c.data.callers)}</span></td>`).join('')+
+    `<td class="${state.sel==='all'?'sel':''}"><b>${val(tot,ch.k)}</b><span class="pc">${pct(val(tot,ch.k),tot.callers)}</span></td></tr>`});
+  return `<div><table class="mx"><thead><tr><th>Channel</th>${th}<th data-sel="all" class="${state.sel==='all'?'sel':''}">Total</th></tr></thead><tbody>${r}</tbody></table></div>`;
+}
+function metricSeg(){return `<div class="seg" role="group" aria-label="Count by"><button id="mr${state.o}" data-metric="reach" aria-pressed="${state.metric==='reach'}">People</button><button id="mm${state.o}" data-metric="mentions" aria-pressed="${state.metric==='mentions'}">Mentions</button></div>`}
+function chChips(){return `<div class="chips">${CH.map(c=>`<button class="chip" id="cc${state.o}${c.k}" data-ch="${c.k}" aria-pressed="${state.chs.includes(c.k)}"><i style="background:var(${c.v})"></i>${c.n}</button>`).join('')}</div>`}
+function otherList(a){return Object.entries(a.other).filter(e=>e[1]>0).sort((x,y)=>y[1]-x[1])}
+const selName=()=>state.sel==='all'?'All '+DAYS.length+' days':'Day '+DAYS[state.sel].day+' · '+dlabel(DAYS[state.sel]);
+
+
+state.o='H';state.dialCh='all';
+const DRAMP=['#16243d','#184f95','#1c5cab','#2a78d6','#3987e5','#6da7ec','#9ec5f4'];        // PM: night blue
+const SUNRAMP=['#3a2a0a','#b07a0c','#c98500','#e09a00','#f2b21c','#f7c94e','#ffe08f'];      // AM: sun, amber to bright yellow
+
+function dialDark(el,a){
+  const S=600,c=S/2,root=el.closest('[data-m]');
+  const k=state.dialCh,isAll=k==='all',ch=CH.find(x=>x.k===k);
+  const q=isAll?a.q:a.qch[k];
+  const mx=Math.max(1,...q),colr=isAll?null:col(root,ch.v);
+  const RINGS={am:[62,132],pm:[146,210]},FACE=250;
+  const P=(deg,r)=>{const t=deg*Math.PI/180;return [c+r*Math.sin(t),c-r*Math.cos(t)]};
+  let s=`<svg viewBox="0 0 ${S} ${S}" role="img" aria-label="Viewers per 15 minutes on a clock face, AM inside and PM outside"><defs>
+   <filter id="dglow" filterUnits="userSpaceOnUse" x="0" y="0" width="${S}" height="${S}"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+   <radialGradient id="dface"><stop offset="0" stop-color="#121a2c"/><stop offset="1" stop-color="#0a0e17"/></radialGradient></defs>`;
+  s+=`<circle cx="${c}" cy="${c}" r="${FACE+30}" fill="url(#dface)" stroke="#2a3550" stroke-width="2"/><circle cx="${c}" cy="${c}" r="${FACE+24}" fill="none" stroke="#1a2132"/>`;
+  for(const [r0,r1] of Object.values(RINGS))s+=`<circle cx="${c}" cy="${c}" r="${r0}" fill="none" stroke="#1a2132"/><circle cx="${c}" cy="${c}" r="${r1}" fill="none" stroke="#1a2132" stroke-dasharray="2 4"/>`;
+  for(let i=0;i<60;i++){const maj=i%5===0,[x1,y1]=P(i*6,FACE+(maj?4:10)),[x2,y2]=P(i*6,FACE+20);s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${maj?'#e8ecf6':'#3a4660'}" stroke-width="${maj?3:1.2}" stroke-linecap="round"/>`}
+  for(let h=0;h<12;h++){const [x1,y1]=P(h*30,54),[x2,y2]=P(h*30,FACE-30);s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${h%3===0?'#3a4660':'#232c40'}" stroke-width="${h%3===0?1.5:1}"/>`}
+  for(let h=1;h<=12;h++){const [x,y]=P(h*30,FACE-14);s+=`<text x="${x}" y="${y+6}" text-anchor="middle" font-family="Chakra Petch" font-weight="700" font-size="${h%3===0?20:15}" fill="${h%3===0?'#e8ecf6':'#7f8aa3'}">${h}</text>`}
+  const wedge=(ring,min0,min1,v,lab,extra='',ramp=ring==='am'?SUNRAMP:DRAMP)=>{const [r0,r1]=RINGS[ring],a0=min0/720*360+(min0%60===0?1.2:.4),a1=min1/720*360-(min1%60===0?1.2:.4),rr=r0+3+(r1-r0-3)*v/mx;
+    const fill=v?(isAll?ramp[Math.max(1,Math.min(6,Math.round(v/mx*6)))]:colr):'#121a2a',op=v&&!isAll?(.35+.65*v/mx):1;
+    const [x0,y0]=P(a0,r0),[x1,y1]=P(a1,r0),[x2,y2]=P(a1,rr),[x3,y3]=P(a0,rr);
+    return `<path class="w" data-l="${lab}" data-v="${v}" d="M${x0} ${y0}A${r0} ${r0} 0 0 1 ${x1} ${y1}L${x2} ${y2}A${rr} ${rr} 0 0 0 ${x3} ${y3}Z" fill="${fill}" fill-opacity="${op}" ${extra} ${v/mx>.6?'filter="url(#dglow)"':''}/>`};
+  q.forEach((v,i)=>{const m=360+i*15,night=m>=1440,ring=night||m<720?'am':'pm',cm=m%720;s+=wedge(ring,cm,cm+15,v,QL[i]+' – '+(QL[i+1]||'3:00 AM'),'',night?DRAMP:undefined)});
+  {const [x,y]=P(-8,RINGS.am[0]+12);s+=`<text x="${x}" y="${y+4}" text-anchor="end" font-size="10" fill="#eda100" font-family="IBM Plex Mono" letter-spacing="1">AM</text>`}
+  {const [x,y]=P(-4,RINGS.pm[0]+12);s+=`<text x="${x}" y="${y+4}" text-anchor="end" font-size="10" fill="#7f8aa3" font-family="IBM Plex Mono" letter-spacing="1">PM</text>`}
+  const pi=argmax(q);if(q[pi]>0){const m=360+pi*15,ring=m>=1440||m<720?'am':'pm',[r0,r1]=RINGS[ring],deg=((m%720)+7.5)/720*360,rr=r0+3+(r1-r0-3)*q[pi]/mx,[px,py]=P(deg,rr+8);
+    s+=`<circle cx="${px}" cy="${py}" r="4.5" fill="#ff4d5e" stroke="#0a0e17" stroke-width="2"/>`;
+    el.dataset.peak=QL[pi]}
+  const watched=isAll?a.callers:val(a,k);
+  s+=`<circle cx="${c}" cy="${c}" r="52" fill="#0b101c" stroke="#2a3550"/>
+   <text x="${c}" y="${c+4}" text-anchor="middle" font-family="Chakra Petch" font-weight="700" font-size="38" fill="#e8ecf6">${watched}</text>
+   <text x="${c}" y="${c+22}" text-anchor="middle" font-size="9.5" fill="${isAll?'#7f8aa3':colr}" font-family="IBM Plex Mono" letter-spacing="1">${isAll?'CALLS':(state.metric==='reach'?'PEOPLE':'MENTIONS')}</text></svg><div class="dtip"></div>`;
+  el.innerHTML=s;const svg=el.querySelector('svg'),tip=el.querySelector('.dtip');
+  svg.addEventListener('pointermove',e=>{const p=e.target.closest('path.w');if(!p){tip.style.opacity=0;return}
+    const r=el.getBoundingClientRect();tip.innerHTML=`<b>${p.dataset.l}</b><br>${isAll?'All viewers':ch.n}: <b class="num">${p.dataset.v}</b>`;tip.style.opacity=1;
+    let x=e.clientX-r.left+14,y=e.clientY-r.top+14;if(x+tip.offsetWidth>r.width)x=e.clientX-r.left-14-tip.offsetWidth;tip.style.left=x+'px';tip.style.top=y+'px'});
+  svg.addEventListener('pointerleave',()=>tip.style.opacity=0);
+}
+
+
+/* "Late night" card: people after midnight, split by hour, plus the top channel */
+function lateLine(a){
+  const parts=[0,1,2].map(j=>`${HL[18+j].replace(' AM','')}–${j===2?'3':HL[19+j].replace(' AM','')} AM: <b>${a.h[18+j]}</b>`);
+  const top=CH.filter(c=>c.k!=='other').map(c=>({c,n:a.latech[c.k]})).sort((x,y)=>y.n-x.n)[0];
+  return `after midnight · ${parts.join(' · ')}${a.lateUnknown?` · no time written: <b>${a.lateUnknown}</b>`:''}${top&&top.n?`<br>Top: <b style="color:var(${top.c.v})">${top.c.n}</b> (${top.n})`:''}`;
+}
+function renderH(st){
+  const a=agg(state.sel),tc=topCh(a),pk=argmax(a.h),pq=argmax(a.q);
+  const maxC=Math.max(...DAYS.map(d=>d.callers));
+  const rk=CH.map(c=>({c,n:val(a,c.k)})).sort((x,y)=>y.n-x.n),mxr=Math.max(1,...rk.map(x=>x.n));
+  st.innerHTML=`<section class="mA" data-m="A" style="--allc:#e8ecf6">
+  <div class="top"><div><h2>Ipsos TV Viewing Monitor</h2><div class="sub">October 2026 · ${DAYS.length} day${DAYS.length===1?'':'s'} with calls · next: Day (${nextDay()})</div></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${metricSeg()}<button class="onair" id="refreshBtn" data-refresh="1" title="Reload from the sheet" style="background:transparent;cursor:pointer"><i></i>Live · ${UPDATED}</button></div></div>
+  <div class="days" role="group" aria-label="Day">
+    <button id="dHall" data-sel="all" aria-pressed="${state.sel==='all'}"><b>ALL</b>${DAYS.length} days</button>
+    ${DAYS.map((d,i)=>`<button id="dH${i}" data-sel="${i}" aria-pressed="${state.sel===i}"><b>DAY ${d.day}</b>${dlabel(d)}</button>`).join('')}
+    <button class="wait" disabled><b>DAY ${nextDay()}</b>waiting…</button></div>
+  <div class="hero">
+    <div class="p dialp"><h3><span>The viewing clock · <b style="color:#f2b21c">AM inside</b>, <b style="color:#6da7ec">PM outside</b></span><span>${selName()}</span></h3>
+      <div class="dialwrap chart" id="dialH"></div>
+      <div class="dialctl" role="group" aria-label="Dial channel"><button class="chip" id="dc-all" data-dial="all" aria-pressed="${state.dialCh==='all'}"><i style="background:#e8ecf6"></i>All viewers</button>${CH.map(c=>`<button class="chip" id="dc-${c.k}" data-dial="${c.k}" aria-pressed="${state.dialCh===c.k}"><i style="background:var(${c.v})"></i>${c.n}</button>`).join('')}</div>
+    </div>
+    <div class="side">
+      <div class="k4">
+        <div class="p kpi"><h3>Calls</h3><div class="v num">${a.callers}</div><div class="d">${state.sel==='all'?'avg '+(a.callers/DAYS.length).toFixed(1)+' a day':dlabel(DAYS[state.sel])}</div>
+          <div class="led">${DAYS.map((d,i)=>`<span title="Day ${d.day}: ${d.callers}" style="height:${d.callers/maxC*100}%;opacity:${state.sel==='all'||state.sel===i?1:.25}"></span>`).join('')}</div></div>
+        <div class="p kpi"><h3>Top channel</h3><div class="v" style="color:var(${tc.v});font-size:clamp(20px,2.4vw,28px);line-height:1.1">${tc.n}</div><div class="d">${val(a,tc.k)} ${state.metric==='reach'?'people':'mentions'} · ${pct(val(a,tc.k),a.callers)} of calls</div></div>
+        <div class="p kpi peakcard"><h3>Peak hour</h3><div class="v">${HL[pk]}</div><div class="d">${a.h[pk]} watching · top 15 min ${QL[pq]}</div>${whyBtn(a,'dk-why')}</div>
+        <div class="p kpi"><h3>Late night</h3><div class="v num">${a.late}</div><div class="d">${lateLine(a)}</div></div>
+      </div>
+      <div class="p"><h3>Channels · ${state.metric==='reach'?'people who watched':'times mentioned'}<span>% of calls</span></h3>
+        <div class="rankA" role="group" aria-label="Channels">${rk.map(({c,n})=>`<button class="r" id="rk-${c.k}" data-dial="${c.k}" aria-pressed="${state.dialCh===c.k}"><span style="display:flex;align-items:center;gap:7px"><i style="width:8px;height:8px;border-radius:2px;background:var(${c.v});display:inline-block;flex:none"></i>${c.n}</span><span class="t"><i style="width:${n/mxr*100}%;background:var(${c.v});box-shadow:0 0 8px var(${c.v})"></i></span><span class="n num"><b>${n}</b> · ${pct(n,a.callers)}</span></button>`).join('')}</div>
+      </div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="p c12"><h3>Viewers per hour</h3>${chChips()}<div class="chart" id="cHh" style="margin-top:10px"></div></div>
+    <div class="p c12"><h3>Viewers per 15 minutes · 6:00 AM to 3:00 AM</h3><div class="chart" id="cHq"></div></div>
+    <div class="p c12"><h3>Channels per day & total <span>${state.metric==='reach'?'people who watched':'times mentioned'} · % of calls · click a day</span></h3>${matrix(a)}</div>
+    <div class="p c12"><h3>Other channels named</h3><div class="bars">${(()=>{const o=otherList(a),mx=Math.max(1,...o.map(e=>e[1]));return o.map(([k,v])=>`<div class="r"><span>${k}</span><span class="t"><i style="width:${v/mx*100}%"></i></span><b class="num">${v}</b></div>`).join('')||'<p>None</p>'})()}</div>
+      </div>
+  </div></section>`;
+  const r=st.querySelector('.mA'),T={grid:'#1a2132',text:'#7f8aa3',fg:'#e8ecf6',bg:'#0f1420',font:'IBM Plex Mono',glow:true,areaOp:.18};
+  dialDark(st.querySelector('#dialH'),a);
+  lineChart(st.querySelector('#cHh'),{labels:HL,series:seriesFor(r,a,'h'),theme:T,every:1,short:hourShort,area:true,h:250,aria:'Viewers per hour'});
+  lineChart(st.querySelector('#cHq'),{labels:QL,series:seriesFor(r,a,'q'),theme:T,every:4,short:qShort,area:true,h:230,aria:'Viewers per 15 minutes',tipLabel:i=>QL[i]+' – '+(QL[i+1]||'3:00 AM')});
+}
+const ICON={
+  home:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  times:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 6-8 3 4"/><path d="M3 21h18"/></svg>',
+  channels:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h10M4 12h16M4 18h7"/></svg>',
+  health:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg>'};
+const TABS=[['home','Home'],['times','Times'],['channels','Channels']];
+const LOGO='<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#3987e5" stroke-width="2"/><path d="M12 6.5V12l3.5 2" stroke="#e8ecf6" stroke-width="2" stroke-linecap="round"/></svg>';
+
+function dayStrip(m){return `<div class="daystrip" role="group" aria-label="Day"><button id="${m}-dall" data-sel="all" aria-pressed="${state.sel==='all'}"><b>ALL</b>${DAYS.length} days</button>${DAYS.map((d,i)=>`<button id="${m}-d${i}" data-sel="${i}" aria-pressed="${state.sel===i}"><b>DAY ${d.day}</b>${d.wd} ${new Date(d.date+'T00:00').getDate()}</button>`).join('')}<button class="wait" disabled><b>DAY ${nextDay()}</b>waiting</button></div>`}
+function kpis(a){const tc=topCh(a),pk=argmax(a.h),pq=argmax(a.q);return `<div class="kp">
+  <div class="card"><h3>Calls</h3><div class="v num">${a.callers}</div><div class="d">${state.sel==='all'?'avg '+(a.callers/DAYS.length).toFixed(1)+' a day':dlabel(DAYS[state.sel])}</div></div>
+  <div class="card"><h3>Top channel</h3><div class="v" style="color:var(${tc.v});font-size:19px;line-height:1.15">${tc.n}</div><div class="d">${val(a,tc.k)} ${state.metric==='reach'?'people':'mentions'} · ${pct(val(a,tc.k),a.callers)}</div></div>
+  <div class="card peakcard" style="grid-column:span 2"><h3>Peak hour</h3><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div class="v">${HL[pk]}</div><div class="d">${a.h[pk]} watching · busiest 15 min ${QL[pq]}</div></div>${whyBtn(a,'app-why')}</div></div>
+  <div class="card" style="grid-column:span 2"><h3>Late night</h3><div class="v num">${a.late}</div><div class="d">${lateLine(a)}</div></div></div>`}
+function ranking(a,m,limit){const rk=CH.map(c=>({c,n:val(a,c.k)})).sort((x,y)=>y.n-x.n).slice(0,limit),mx=Math.max(1,...rk.map(x=>x.n));
+  return rk.map(({c,n})=>`<button class="rowbtn" id="${m}-rk-${c.k}" data-dial="${c.k}" aria-pressed="${state.dialCh===c.k}"><span class="nm"><i style="background:var(${c.v})"></i>${c.n}</span><span class="t"><i style="width:${n/mx*100}%;background:var(${c.v});box-shadow:0 0 8px var(${c.v})"></i></span><span class="n num"><b>${n}</b> · ${pct(n,a.callers)}</span></button>`).join('')}
+function clockCard(m){return `<div class="card"><h3><span>Viewing clock · <b style="color:#f2b21c">AM in</b>, <b style="color:#6da7ec">PM out</b></span><span>${selName()}</span></h3><div class="dialwrap chart" id="${m}-dial"></div>
+  <div class="dialctl" role="group" aria-label="Clock channel"><button class="chip" id="${m}-dc-all" data-dial="all" aria-pressed="${state.dialCh==='all'}"><i style="background:#e8ecf6"></i>All</button>${CH.map(c=>`<button class="chip" id="${m}-dc-${c.k}" data-dial="${c.k}" aria-pressed="${state.dialCh===c.k}"><i style="background:var(${c.v})"></i>${c.n}</button>`).join('')}</div></div>`}
+function chCards(a,m){return CH.map(c=>{const vs=DAYS.map((d,i)=>val(agg(i),c.k)),cs=DAYS.map(d=>d.callers),mx=Math.max(1,...vs),n=vs.length,w=300/n;
+  const bars=vs.map((v,i)=>`<rect x="${i*w+3}" y="${42-v/mx*36}" width="${w-6}" height="${Math.max(2,v/mx*36)}" rx="3" fill="var(${c.v})" opacity="${state.sel==='all'||state.sel===i?1:.3}"><title>Day ${DAYS[i].day}: ${v}</title></rect>`).join('');
+  const open=dev[m].open===c.k;
+  return `<button class="chcard" id="${m}-cc-${c.k}" data-open="${c.k}" aria-expanded="${open}"><span class="nm"><i style="background:var(${c.v})"></i>${c.n}</span><span class="big num">${val(a,c.k)}<small>${pct(val(a,c.k),a.callers)}</small></span>
+   <svg viewBox="0 0 300 46" preserveAspectRatio="none" aria-hidden="true">${bars}</svg>
+   ${open?`<span class="days">${vs.map((v,i)=>`<span><b>${v}</b>Day ${DAYS[i].day} · ${pct(v,cs[i])}</span>`).join('')}</span>`:''}</button>`}).join('')}
+function healthBody(){const c={crit:0,serious:0,warn:0};HEALTH.forEach(h=>c[h[0]]++);
+  return `<div class="card"><h3>Sheet checks<span>${HEALTH.length} to look at</span></h3><div class="hsum"><span style="color:var(--crit)">${c.crit} critical</span><span style="color:var(--serious)">${c.serious} serious</span><span style="color:var(--warn)">${c.warn} to check</span></div></div>
+   <div class="card hlist"><ul>${HEALTH.map(h=>`<li><span class="pill" style="background:${SEV[h[0]][1]}">${SEV[h[0]][0]}</span><span>${h[1]}<br><span style="color:var(--mute)">${h[2]}</span></span></li>`).join('')}</ul></div>`}
+
+function appHTML(m){
+  const a=agg(state.sel),t=dev[m].tab,tab=false;
+  let body='';
+  if(t==='home'){
+    const hint=dev[m].hint?`<div class="card install"><div class="logo">${LOGO}</div><p><b>Add to your home screen</b><br>${tab?'Tap Share, then “Add to Home Screen”. It opens full screen like an app.':'Tap Share ⬆, then “Add to Home Screen”.'}</p><button data-dismiss="1" aria-label="Dismiss">×</button></div>`:'';
+    body=tab?`${hint}<div class="home"><div>${clockCard(m)}</div><div style="display:grid;gap:14px">${kpis(a)}<div class="card"><h3>Channels<span>${metricSeg()}</span></h3>${ranking(a,m,8)}</div></div></div><div class="card"><h3>Viewers per hour<span>${selName()}</span></h3><div class="chart" id="${m}-ch"></div></div>`
+            :`${hint}${kpis(a)}${clockCard(m)}<div class="card"><h3>Top channels<span>${metricSeg()}</span></h3>${ranking(a,m,5)}</div>`;
+  }else if(t==='times'){
+    body=`<div class="card"><h3>Viewers per hour</h3>${chChips()}<div class="hscroll"><div class="chart" id="${m}-ch" style="margin-top:10px;min-width:${tab?0:620}px"></div></div>${tab?'':'<div class="swipe">Swipe sideways for the whole day →</div>'}</div>
+          <div class="card"><h3>Viewers per 15 minutes</h3><div class="hscroll"><div class="chart" id="${m}-cq" style="min-width:${tab?0:1000}px"></div></div><div class="swipe">${tab?'6:00 AM to 3:00 AM':'Swipe sideways · 6:00 AM to 3:00 AM →'}</div></div>`;
+  }else if(t==='channels'){
+    body=`<div class="card"><h3>Channels · ${selName()}<span>${metricSeg()}</span></h3><div style="font-size:11.5px;color:var(--mute)">Tap a channel to see each day.</div></div>
+          <div class="${tab?'chgrid':''}" style="${tab?'':'display:grid;gap:10px'}">${chCards(a,m)}</div>
+          ${tab?`<div class="card"><h3>Channels per day & total</h3>${matrix(a)}</div>`:''}
+          <div class="card"><h3>Other channels named</h3><div class="bars">${(()=>{const o=otherList(a),mx=Math.max(1,...o.map(e=>e[1]));return o.map(([k,v])=>`<div class="r"><span>${k}</span><span class="t"><i style="width:${v/mx*100}%"></i></span><b class="num">${v}</b></div>`).join('')})()}</div></div>`;
+  }else body=healthBody()+`<div style="text-align:center"><button class="viewlink" data-view="desktop" id="app-desk">Show the desktop dashboard</button></div>`;
+  const nav=TABS.map(([k,l])=>`<button id="${m}-tab-${k}" data-tab="${k}" ${t===k?'aria-current="page"':''}>${ICON[k]}${l}</button>`).join('');
+  const head=`<div class="ahead"><div class="brand"><div class="logo">${LOGO}</div><div><b>Ipsos Monitor</b><small>October 2026 · ${DAYS.length} days</small></div></div><button class="live" data-refresh="1" id="app-live"><i></i>LIVE ${UPDATED}</button></div>`;
+  const sbar='';
+  const content=`<div class="scroller" id="${m}-scroll">${head}${t==='health'?'':dayStrip(m)}<div class="body">${body}</div></div>`;
+  return `<section class="mA app ${m}" data-m="A" data-dev="${m}" style="--allc:#e8ecf6">${sbar}${tab?`<div class="frame2"><nav class="rail" aria-label="Sections">${nav}</nav>${content}</div>`:`${content}<nav class="tabbar" aria-label="Sections">${nav}</nav>`}</section>`;
+}
+function drawApp(scr){const m='app';
+  const old=scr.querySelector('.scroller');const top=old?old.scrollTop:0;
+  scr.innerHTML=appHTML(m);const a=agg(state.sel),root=scr.querySelector('.app'),t=dev[m].tab;
+  const T={grid:'#1a2132',text:'#7f8aa3',fg:'#e8ecf6',bg:'#0f1420',font:'IBM Plex Mono',glow:true,areaOp:.18};
+  if(t==='home'){dialDark(scr.querySelector(`#${m}-dial`),a);if(scr.querySelector(`#${m}-ch`))lineChart(scr.querySelector(`#${m}-ch`),{labels:HL,series:seriesFor(root,a,'h'),theme:T,every:1,short:hourShort,area:true,h:240,aria:'Viewers per hour'})}
+  if(t==='times'){lineChart(scr.querySelector(`#${m}-ch`),{labels:HL,series:seriesFor(root,a,'h'),theme:T,every:m==='phone'?2:1,short:hourShort,area:true,h:m==='phone'?220:250,aria:'Viewers per hour'});
+    lineChart(scr.querySelector(`#${m}-cq`),{labels:QL,series:seriesFor(root,a,'q'),theme:T,every:4,short:qShort,area:true,h:m==='phone'?220:240,aria:'Viewers per 15 minutes',tipLabel:i=>QL[i]+' – '+(QL[i+1]||'3:00 AM')})}
+  const sc=scr.querySelector('.scroller');if(sc)sc.scrollTop=top;
+}
+
+function othNames(){const s={};DAYS.forEach(d=>Object.keys(d.oth_h||{}).forEach(k=>s[k]=1));return Object.keys(s)}
+function othAgg(sel){const ds=sel==='all'?DAYS:[DAYS[sel]],o={};othNames().forEach(k=>o[k]=Array(NH).fill(0));ds.forEach(d=>othNames().forEach(k=>(d.oth_h&&d.oth_h[k]||[]).forEach((v,i)=>o[k][i]+=v)));return o}
+const fullHour=i=>HL[i]+' – '+(HL[i+1]||'3 AM');
+
+function whyBtn(a,id){return `<button class="whybtn" id="${id}" data-story="1"><i>?</i>Why ${HL[argmax(a.h)]}?</button>`}
+
+const argmin=a=>a.reduce((b,v,i)=>v<a[b]?i:b,0);
+function storyHTML(a,m){
+  const h=argmax(a.h),tot=a.h[h],avg=a.h.reduce((s,v)=>s+v,0)/NH;
+  const oa=othAgg(state.sel),named=othNames().map(k=>({k,n:oa[k][h]})).filter(x=>x.n>0).sort((x,y)=>y.n-x.n);
+  const main=CH.filter(c=>c.k!=='other').map(c=>({c,n:a.hch[c.k][h]})).sort((x,y)=>y.n-x.n);
+  const oth=a.hch.other[h];
+  /* hero sparkline */
+  const W=520,Hs=92,bw=W/NH;
+  const spark=`<svg class="spark" viewBox="0 0 ${W} ${Hs+16}" preserveAspectRatio="none" aria-label="Viewers per hour, peak highlighted">${a.h.map((v,i)=>`<rect x="${i*bw+2}" y="${Hs-v/Math.max(1,a.h[h])*(Hs-6)}" width="${bw-4}" height="${Math.max(2,v/Math.max(1,a.h[h])*(Hs-6))}" rx="3" fill="${i===h?'#ff4d5e':'#1f3b66'}" ${i===h?'filter="drop-shadow(0 0 6px rgba(255,77,94,.8))"':''}><title>${HL[i]}: ${v}</title></rect>`).join('')}${[0,6,12,18].map(i=>`<text x="${i*bw+bw/2}" y="${Hs+13}" text-anchor="middle" font-size="10" fill="#7f8aa3" font-family="IBM Plex Mono">${hourShort(HL[i],i)}</text>`).join('')}</svg>`;
+  /* story: every sentence is chosen by the numbers, and every number comes from the sheet */
+  const st=[],P=n=>n===1?'person':'people',share=tot/Math.max(1,a.callers),ratio=avg?tot/avg:0;
+  const sorted=[...a.h].map((v,i)=>({v,i})).sort((x,y)=>y.v-x.v),second=sorted[1]||{v:0,i:h};
+  // 1 · how big the peak is
+  const sizeWord=ratio>=3?'about '+Math.round(ratio)+' times':ratio>=1.9?'more than double':ratio>=1.4?'about half as much again as':ratio>=1.15?'a little more than':'only just above';
+  const shareWord=share>=.5?'more than half of all callers':share>=.4?'almost half of all callers':share>=.3?'about a third of callers':share>=.2?'about 1 in '+Math.round(1/share)+' callers':'a small share of callers';
+  st.push(`<b>${tot} of ${a.callers}</b> callers (${pct(tot,a.callers)}, ${shareWord}) watched TV between <b>${fullHour(h)}</b>. That is <b>${sizeWord}</b> the average hour (${avg.toFixed(1)}).`);
+  // 2 · how clear the peak is
+  if(second.v===tot)st.push(`It is a shared peak: <b>${HL[second.i]}</b> also had ${tot} ${P(tot)}, so evenings like this are close calls.`);
+  else if(tot-second.v<=2)st.push(`The peak is narrow: <b>${HL[second.i]}</b> was close behind with ${second.v}, only ${tot-second.v} fewer.`);
+  else st.push(`The peak is clear: the next busiest hour, <b>${HL[second.i]}</b>, had ${second.v}, which is ${tot-second.v} fewer.`);
+  // 3 · how viewing gets there and leaves
+  if(h>0){const prev=a.h[h-1],jump=prev?(tot-prev)/prev:1;
+    const rise=jump>=.5?'jumps sharply':jump>=.2?'rises':jump>0?'edges up':'holds level';
+    let s0=h;while(s0>0&&a.h[s0-1]<a.h[s0])s0--;let e0=h;while(e0<NH-1&&a.h[e0+1]<a.h[e0])e0++;
+    const after=h<NH-1?a.h[h+1]:null,drop=after!==null&&tot?(tot-after)/tot:0;
+    const fall=after===null?'':drop>=.5?`, then falls quickly to <b>${after}</b> at ${HL[h+1]}`:drop>=.2?`, then drops to <b>${after}</b> at ${HL[h+1]}`:`, and stays high at ${HL[h+1]} (<b>${after}</b>)`;
+    st.push(`Viewing ${rise} from <b>${prev}</b> at ${HL[h-1]} to <b>${tot}</b>${s0<h-1?` (it has been climbing since ${HL[s0]}, when it was ${a.h[s0]})`:''}${fall}.`)}
+  // 4 · who leads among the 7 channels
+  const m0=main[0],m1=main[1];
+  if(m0&&m0.n===1){const ones=main.filter(x=>x.n===1).map(x=>x.c.n);
+    st.push(ones.length===1?`The 7 tracked channels were quiet: only <b>${ones[0]}</b> had a viewer.`:`The 7 tracked channels were spread thin: ${ones.length} channels had just 1 viewer each (${ones.join(', ')}).`)}
+  else if(m0&&m0.n){
+    if(m1&&m1.n===m0.n){const tied=main.filter(x=>x.n===m0.n).map(x=>x.c.n);st.push(`Among the 7 tracked channels there is no single leader: <b>${tied.join('</b>, <b>')}</b> are tied with ${m0.n} each.`)}
+    else if(!m1||!m1.n||m0.n>=2*m1.n)st.push(`Among the 7 tracked channels, <b>${m0.c.n}</b> clearly leads with ${m0.n} ${P(m0.n)}${m1&&m1.n?`, at least twice ${m1.c.n} (${m1.n})`:''}.`);
+    else st.push(`Among the 7 tracked channels, <b>${m0.c.n}</b> narrowly leads with ${m0.n}, just ahead of ${m1.c.n} (${m1.n}).`);
+  }else st.push('None of the 7 tracked channels had viewers in this hour.');
+  // 5 · channels at their own best
+  const own=CH.filter(c=>c.k!=='other'&&a.hch[c.k][h]>0&&argmax(a.hch[c.k])===h).map(c=>c.n);
+  if(own.length)st.push(`This is also the busiest hour of the whole day for <b>${own.join('</b> and <b>')}</b>.`);
+  // 6 · how big "Other" is
+  if(oth){const os=oth/Math.max(1,tot),ow=os>=.5?'Most viewers':os>=.3?'A large group':os>=.15?'Some viewers':'A few viewers';
+    st.push(`${ow} (<b>${oth}</b>, ${pct(oth,tot)}) were on channels outside the list${named.length?`, mostly <b>${named.slice(0,3).map(x=>x.k).join(', ')}</b>`:', with no names in the notes'}.${os>=.3&&m0&&oth>m0.n?' That is more than any single tracked channel.':''}`)}
+  /* who */
+  const all=[...main.filter(x=>x.n),{c:CH.find(c=>c.k==='other'),n:oth}].sort((x,y)=>y.n-x.n),mx=Math.max(1,...all.map(x=>x.n));
+  const brow=(c,n)=>`<div class="brow"><span class="nm"><i style="background:var(${c.v})"></i>${c.n}</span><span class="t"><i style="width:${n/mx*100}%;background:var(${c.v});box-shadow:0 0 8px var(${c.v})"></i></span><span class="n num"><b>${n}</b> · ${pct(n,tot)}</span></div>`;
+  const subs=named.length?`<div class="subn"><div class="tag">Named in the notes</div>${named.map(x=>`<div class="brow"><span class="nm">${x.k}</span><span class="t"><i style="width:${x.n/mx*100}%;background:var(--s-oth);opacity:.6"></i></span><span class="n num"><b>${x.n}</b></span></div>`).join('')}</div>`:'';
+  /* inside the hour */
+  let inside='';
+  {const qs=[0,1,2,3].map(j=>h*4+j),qmx=Math.max(1,...qs.map(i=>a.q[i])),best=qs.reduce((b,i)=>a.q[i]>a.q[b]?i:b,qs[0]);
+    inside=`<div class="qgrid">${qs.map(i=>{const top=CH.filter(c=>c.k!=='other').map(c=>({c,n:a.qch[c.k][i]})).sort((x,y)=>y.n-x.n)[0];
+      return `<div class="qcol ${i===best?'best':''}"><b class="num">${a.q[i]}</b><div class="bar" style="height:${8+a.q[i]/qmx*90}px"></div><span>${QL[i].replace(' PM','').replace(' AM','')}</span><span class="who">${top&&top.n?`top: ${top.c.n}`:'&nbsp;'}</span></div>`}).join('')}</div>
+      <div class="ws" style="margin-top:6px">${(()=>{const v=qs.map(i=>a.q[i]),lo=Math.min(...v),hi=Math.max(...v);return hi===lo?`Viewing is flat through the hour: exactly ${lo} people in every 15 minutes.`:hi-lo<=2?`Viewing stays steady through the hour (${lo} to ${hi} people every 15 minutes).`:`Viewing is busiest at <b>${QL[best]} – ${QL[best+1]||'3:00 AM'}</b> (${a.q[best]} people) and lowest at ${QL[qs[v.indexOf(lo)]]} (${lo}).`})()}</div>`}
+  /* change */
+  let delta='<div class="ws">No earlier hour to compare with.</div>';
+  if(h>0){const prev=a.h[h-1],ch=CH.map(c=>({c,d:a.hch[c.k][h]-a.hch[c.k][h-1],now:a.hch[c.k][h],was:a.hch[c.k][h-1]})).filter(x=>x.now||x.was).sort((x,y)=>y.d-x.d);
+    delta=`<div class="ws" style="margin-bottom:8px">${HL[h-1]}: <b>${prev}</b> → ${HL[h]}: <b>${tot}</b> (${tot-prev>=0?'+':''}${tot-prev} people)</div>`+ch.map(x=>`<div class="delta"><span style="display:flex;gap:7px;align-items:center"><i style="width:8px;height:8px;border-radius:2px;background:var(${x.c.v});display:inline-block"></i>${x.c.n}</span><span class="fr num">${x.was} → ${x.now}</span><span class="${x.d>0?'up':x.d<0?'dn':'fl'} num">${x.d>0?'▲ +'+x.d:x.d<0?'▼ '+x.d:'='}</span></div>`).join('')}
+  /* days */
+  let byday;
+  if(state.sel==='all'){const vs=DAYS.map(d=>d.h[h]),dm=Math.max(1,...vs),b=argmax(vs);
+    byday=vs.map((v,i)=>`<div class="dbar ${i===b?'best':''}"><span>Day ${DAYS[i].day} · ${DAYS[i].wd}</span><span class="t"><i style="width:${v/dm*100}%"></i></span><b class="num" style="text-align:right">${v}</b></div>`).join('')+`<div class="ws" style="margin-top:8px">${(()=>{const lo=Math.min(...vs),w=argmin(vs);return vs[b]-lo<=2?`The peak is steady across the days: every day had between ${lo} and ${vs[b]} people at ${HL[h]}.`:`<b>Day ${DAYS[b].day} (${DAYS[b].wd})</b> drove it most with ${vs[b]} people, while Day ${DAYS[w].day} (${DAYS[w].wd}) had only ${lo}.`})()}</div>`}
+  else{const d=DAYS[state.sel],av=DAYS.map(x=>x.h[h]).reduce((s,v)=>s+v,0)/DAYS.length;byday=`<div class="ws">On Day ${d.day}, <b>${d.h[h]}</b> people watched at ${HL[h]}. The average for this hour across all ${DAYS.length} days is <b>${av.toFixed(1)}</b>, so Day ${d.day} was <b>${d.h[h]>av*1.2?'well above':d.h[h]>=av*.95?'about':d.h[h]>=av*.8?'a little below':'well below'}</b> average.</div>`}
+  return `<div class="story" role="dialog" aria-modal="true" aria-label="The Peak Hour Story"><div class="sheet">
+    <button class="close" data-close="1" aria-label="Close">×</button>
+    <div class="hero"><div><div class="eyebrow">The Peak Hour Story · ${selName()}</div><h2>${HL[h]}</h2>
+      <div class="facts"><span><b>${tot}</b> people watching</span><span><b>${pct(tot,a.callers)}</b> of callers</span><span><b>${avg?(tot/avg).toFixed(1):'–'}×</b> the average hour</span></div></div>
+      <div>${spark}</div></div>
+    <div class="sgrid">
+      <div class="sc wide"><h5><em>1</em>The story</h5><ul>${st.map(x=>`<li><span>${x}</span></li>`).join('')}</ul></div>
+      <div class="sc"><h5><em>2</em>Inside the hour</h5>${inside}</div>
+      <div class="sc wide"><h5><em>3</em>Who was watching</h5>${all.map(x=>x.c.k==='other'?brow(x.c,x.n)+subs:brow(x.c,x.n)).join('')}<div class="ws" style="margin-top:8px">One person can watch two channels in the same hour, so these add up to more than ${tot}.</div></div>
+      <div class="sc"><h5><em>4</em>What changed from ${h>0?HL[h-1]:'before'}</h5>${delta}</div>
+      <div class="sc"><h5><em>5</em>${state.sel==='all'?'Which days drove it':'Compared with other days'}</h5>${byday}</div>
+      <div class="sc wide"><h5><em>?</em>How to read this</h5><dl>
+        <dt>People watching</dt><dd>Callers who said they watched TV at any time in that hour. Each person counts once.</dd>
+        <dt>Other</dt><dd>Channels outside the 7 in the dropdown. The names come from the notes written next to that time slot.</dd></dl></div>
+      <div class="sc"><h5><em>i</em>Where this comes from</h5><div class="ws">The ticks, Channel and Segmentation cells in every “Day (n)” tab (${selName()}). Fridays and Saturdays are skipped. Updated ${UPDATED}.</div></div>
+    </div></div></div>`;
+}
+
+
+const dev={app:{tab:'home',open:null,hint:true}};
+try{if(localStorage.getItem('ipsosHint')==='0')dev.app.hint=false}catch(e){}
+let storyOpen=false;
+/* Phones and tablets get the app layout; laptops, desktops and TV screens get the full dashboard. */
+function isApp(){
+  try{const v=localStorage.getItem('ipsosView');if(v==='app')return true;if(v==='desktop')return false}catch(e){}
+  const touch=matchMedia('(pointer:coarse)').matches&&!matchMedia('(hover:hover)').matches;
+  return touch&&Math.max(screen.width,screen.height)<=1400;
+}
+function render(){const st=document.getElementById('stage');
+  if(!DAYS.length){st.innerHTML=`<section class="mA" data-m="A"><div class="top"><div><h2>Ipsos TV Viewing Monitor</h2><div class="sub">No Day tab has calls yet. Tabs named “Day (1)”, “Day (2)” … appear here as soon as callers are ticked in column Y.</div></div></div></section>`;return}
+  if(!state.chs)state.chs=defaultChs();if(state.sel!=='all'&&!DAYS[state.sel])state.sel='all';
+  const app=isApp();document.body.classList.toggle('isapp',app);
+  if(app)drawApp(st);else renderH(st);
+  if(!app&&matchMedia('(pointer:coarse)').matches){const t=st.querySelector('.top');if(t&&!t.querySelector('[data-view]'))t.insertAdjacentHTML('beforeend','<button class="viewlink" data-view="app" id="dk-app">Show the app view</button>')}
+  const layer=document.getElementById('storyLayer'),old=layer.querySelector('.story'),top=old?old.scrollTop:0;
+  layer.innerHTML=storyOpen?storyHTML(agg(state.sel),app?'app':'desk'):'';
+  const s=layer.querySelector('.story');if(s){s.scrollTop=top;if(!old){const c=s.querySelector('.close');if(c)c.focus()}}
+  document.documentElement.style.overflow=storyOpen?'hidden':'';
+}
+function bootMsg(t){const m=document.getElementById('bootmsg');if(m)m.textContent=t;else{const b=document.getElementById('refreshBtn');if(b){b.style.opacity=1;b.title=t}}}
+/* Web app link, used when this file is opened from a computer (double-click) */
+const WEB_APP_URL='https://script.google.com/macros/s/AKfycbwgZAKc3xa8k_8r1BAEPYmCdT_ppCLiNT28M4cGVTf7e35iJHHJDvkJWNepWM7Vb1Z3/exec';
+function load(){let done=false;
+  const slow=setTimeout(()=>{if(!done)bootMsg('Still waiting for the sheet… If this stays, open Apps Script → Executions to see what happened.')},20000);
+  const ok=txt=>{done=true;clearTimeout(slow);let d;
+      try{d=JSON.parse(txt)}catch(e){bootMsg('The sheet sent back something unexpected. Check that the latest Code.gs is deployed.');return}
+      if(d.error){bootMsg('Error reading the sheet: '+d.error);console.error(d.stack);return}
+      DAYS=d.days;PENDING=d.pending;HEALTH=[];UPDATED=d.updated;const y=window.scrollY;
+      try{render()}catch(e){bootMsg('Error drawing the dashboard: '+e.message);console.error(e)}window.scrollTo(0,y)};
+  const fail=e=>{done=true;clearTimeout(slow);bootMsg('Could not reach the sheet: '+(e&&e.message||e))};
+  if(window.google&&google.script){google.script.run.withSuccessHandler(ok).withFailureHandler(fail).getClientJson();return}
+  fetch(WEB_APP_URL+'?format=json&view=client').then(r=>r.text()).then(ok).catch(fail)}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-sel],[data-metric],[data-ch],[data-dial],[data-refresh],[data-tab],[data-open],[data-dismiss],[data-story],[data-close],[data-view],.story');if(!t||t.disabled)return;
+  if(t.dataset.close||(t.classList.contains('story')&&e.target===t)){storyOpen=false;render();return}
+  if(t.classList.contains('story'))return;
+  if(t.dataset.story){storyOpen=true;render();return}
+  if(t.dataset.refresh){t.style.opacity=.5;load();return}
+  if(t.dataset.view){try{localStorage.setItem('ipsosView',t.dataset.view)}catch(_){}render();window.scrollTo(0,0);return}
+  if(t.dataset.tab){dev.app.tab=t.dataset.tab;render();const sc=document.getElementById('app-scroll');if(sc)sc.scrollTop=0;return}
+  if(t.dataset.open){dev.app.open=dev.app.open===t.dataset.open?null:t.dataset.open;render();return}
+  if(t.dataset.dismiss){dev.app.hint=false;try{localStorage.setItem('ipsosHint','0')}catch(_){}render();return}
+  if(t.dataset.dial){state.dialCh=(state.dialCh===t.dataset.dial&&t.dataset.dial!=='all')?'all':t.dataset.dial}
+  else if(t.dataset.sel!==undefined){state.sel=t.dataset.sel==='all'?'all':+t.dataset.sel}
+  else if(t.dataset.metric){state.metric=t.dataset.metric}
+  else if(t.dataset.ch){const k=t.dataset.ch;state.chs=state.chs.includes(k)?state.chs.filter(x=>x!==k):[...state.chs,k]}
+  const y=window.scrollY;render();window.scrollTo(0,y)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&storyOpen){storyOpen=false;render()}});
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(DAYS.length)render()},150)});
+setInterval(load,5*60*1000);
+load();
+</script>
+</body>
+</html>
